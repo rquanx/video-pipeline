@@ -42,6 +42,7 @@ class VibeTranscriber:
         srt_path = self.subtitle_dir / f'{source.stem}.srt'
         if srt_path.exists():
             srt_to_txt(srt_path, txt_path)
+            srt_path.unlink(missing_ok=True)
             return TranscribeResult(source=source, success=True, message='srt existed, converted')
 
         cmd = self._build_command(source, srt_path)
@@ -51,6 +52,7 @@ class VibeTranscriber:
 
         if srt_path.exists():
             srt_to_txt(srt_path, txt_path)
+            srt_path.unlink(missing_ok=True)
         else:
             return TranscribeResult(source=source, success=False, message='srt missing after transcription')
 
