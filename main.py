@@ -7,10 +7,9 @@ import platform
 from pathlib import Path
 from typing import List, Optional
 
-from pipeline.downloader import YtDlpDownloader
+from pipeline.factory import create_downloader, create_transcriber
 from pipeline.io_loader import load_urls
 from pipeline.summarizer import CommandSummarizer, summarize_txt_files
-from pipeline.transcriber import VibeTranscriber
 from pipeline.types import Summarizer
 from pipeline.utils import ensure_dirs, list_video_files
 
@@ -47,12 +46,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--subtitle-path', default=str(DEFAULT_SUBTITLE_PATH))
     parser.add_argument('--prompt-path', default=str(DEFAULT_PROMPT_PATH))
     parser.add_argument('--summary-path', default=str(DEFAULT_SUMMARY_PATH))
+    parser.add_argument('--downloader', default='yt-dlp', help='downloader kind or module:ClassName')
     parser.add_argument('--yt-dlp-args', default=None, help='extra args for yt-dlp')
+    parser.add_argument('--transcriber', default='vibe', help='transcriber kind or module:ClassName')
     parser.add_argument('--vibe-args', default=None, help='extra args for vibe')
     parser.add_argument('--llm-command', default=None, help='external command for summarization')
     parser.add_argument('--download-workers', type=int, default=4)
     parser.add_argument('--transcribe-workers', type=int, default=2)
-    parser.add_argument('--summary-workers', type=int, default=1)
+    parser.add_argument('--summary-workers', type=int, default=2)
     parser.add_argument('--skip-download', action='store_true')
     parser.add_argument('--skip-transcribe', action='store_true')
     parser.add_argument('--skip-summary', action='store_true')
@@ -78,7 +79,8 @@ def main() -> None:
         return
 
     if not args.skip_download:
-        downloader = YtDlpDownloader(
+        downloader = create_downloader(
+            kind=args.downloader,
             cookies_path=str(cookies_path),
             video_dir=str(video_dir),
             workers=args.download_workers,
@@ -94,7 +96,8 @@ def main() -> None:
 
     video_files: List[Path] = list_video_files(video_dir)
     if not args.skip_transcribe:
-        transcriber = VibeTranscriber(
+        transcriber = create_transcriber(
+            kind=args.transcriber,
             model_path=args.vibe_model_path,
             subtitle_dir=subtitle_dir,
             workers=args.transcribe_workers,
