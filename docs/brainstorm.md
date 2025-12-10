@@ -3,7 +3,7 @@
 - inputDir 默认当前目录
 - cookiesPath 默认 './cookies.txt'
 - videoPath 默认 './todo'
-- vibeModelPath 默认 "C:\Users\91658\AppData\Local\github.com.thewh1teagle.vibe\ggml-large-v3-turbo.bin"
+- vibeModelPath 默认 "<user>\<app>\github.com.thewh1teagle.vibe\ggml-large-v3-turbo.bin"
 - subtitlePath 默认 "./subtitle"
 - promptPath 默认 './prompt'
 - summaryPath 默认 './summary'
@@ -22,7 +22,7 @@
 - 可以并行执行
 - 做抽象处理，支持替换视频下载工具
 4.视频音频识别
-遍历 videoPath 下的文件执行 vibe --model <vibeModelPath> --file <file_path> -l chinese --write <subtitlePath>/<file_name>.srt，然后将 srt 抹掉时间信息（去除多余的空行，每一段话一行即可）保存为 txt，然后删除 txt
+遍历 videoPath 下的文件执行 vibe --model <vibeModelPath> --file <file_path> -l chinese --write <subtitlePath>/<file_name>.srt，然后将 srt 抹掉时间信息（去除多余的空行，每一段话一行即可）保存为 txt，然后删除 srt
 - 执行命令前先检测 subtitlePath 已经存在同名的 txt，存在则不需要处理
 - 可以并行执行
 - 做抽象处理，支持替换音频识别工具
