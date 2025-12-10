@@ -85,26 +85,24 @@ def main() -> None:
     ensure_dirs(video_dir, subtitle_dir, prompt_dir, summary_dir)
 
     urls = load_urls(input_dir, args.url)
-    if not urls:
-        print("No URLs found. Provide --url or input.txt/json in input-dir.")
-        return
-
-    if not args.skip_download:
-        downloader = create_downloader(
-            kind=args.downloader,
-            cookies_path=str(cookies_path),
-            video_dir=str(video_dir),
-            workers=args.download_workers,
-            extra_args=args.yt_dlp_args,
-        )
-        print(f"Start downloading {len(urls)} url(s)...")
-        download_results = downloader.download(urls)
-        for res in download_results:
-            status = "ok" if res.success else "fail"
-            print(f"[download][{status}] {res.url} - {res.message}")
+    if urls:
+        if not args.skip_download:
+            downloader = create_downloader(
+                kind=args.downloader,
+                cookies_path=str(cookies_path),
+                video_dir=str(video_dir),
+                workers=args.download_workers,
+                extra_args=args.yt_dlp_args,
+            )
+            print(f"Start downloading {len(urls)} url(s)...")
+            download_results = downloader.download(urls)
+            for res in download_results:
+                status = "ok" if res.success else "fail"
+                print(f"[download][{status}] {res.url} - {res.message}")
+        else:
+            print("Skipping download step.")
     else:
-        print("Skipping download step.")
-
+        print("No URLs found.")
     video_files: List[Path] = list_video_files(video_dir)
     if not args.skip_transcribe:
         transcriber = create_transcriber(
