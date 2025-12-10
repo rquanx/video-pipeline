@@ -13,7 +13,7 @@ from .utils import ensure_dirs, run_subprocess
 
 class NoOpSummarizer:
     def summarize_file(self, prompt: str, content: str, source: Path) -> str:
-        raise RuntimeError('no summarizer configured')
+        raise RuntimeError("no summarizer configured")
 
 
 class CommandSummarizer:
@@ -24,7 +24,7 @@ class CommandSummarizer:
         payload = f"{prompt}\n\n# Source: {source.name}\n{content}"
         proc = run_subprocess(self.command, timeout=None, input_text=payload)
         if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or 'summarizer failed')
+            raise RuntimeError(proc.stderr.strip() or "summarizer failed")
         return proc.stdout.strip() or payload
 
 
@@ -36,21 +36,24 @@ def summarize_txt_files(
     workers: int,
 ) -> List[SummaryResult]:
     if summarizer is None:
-        return [SummaryResult(source=txt, success=False, message='skipped (no summarizer)') for txt in txt_files]
+        return [
+            SummaryResult(source=txt, success=False, message="skipped (no summarizer)")
+            for txt in txt_files
+        ]
 
-    prompt = ''
+    prompt = ""
     if prompt_file.exists():
-        prompt = prompt_file.read_text(encoding='utf-8')
+        prompt = prompt_file.read_text(encoding="utf-8")
 
     ensure_dirs(summary_dir)
 
     def worker(txt_file: Path) -> SummaryResult:
         try:
-            content = txt_file.read_text(encoding='utf-8')
+            content = txt_file.read_text(encoding="utf-8")
             summary = summarizer.summarize_file(prompt, content, txt_file)
-            out_path = summary_dir / f'{txt_file.stem}.md'
-            out_path.write_text(summary, encoding='utf-8')
-            return SummaryResult(source=txt_file, success=True, message='ok')
+            out_path = summary_dir / f"{txt_file.stem}.md"
+            out_path.write_text(summary, encoding="utf-8")
+            return SummaryResult(source=txt_file, success=True, message="ok")
         except Exception as exc:  # noqa: BLE001
             return SummaryResult(source=txt_file, success=False, message=str(exc))
 
