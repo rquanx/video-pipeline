@@ -50,7 +50,7 @@ def srt_to_txt(srt_path: Path, txt_path: Path) -> None:
 
 def list_video_files(video_dir: Path) -> list[Path]:
     """列出支持后缀的视频文件。"""
-    video_exts = {".mp4", ".mkv", ".flv", ".mov", ".avi", ".webm"}
+    video_exts = {".mp4", ".mkv", ".flv", ".mov", ".avi", ".webm", ".m4a", ".mp3",".wav"}
     return [
         p for p in video_dir.iterdir() if p.is_file() and p.suffix.lower() in video_exts
     ]
