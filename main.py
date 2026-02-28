@@ -3,13 +3,18 @@ from __future__ import annotations
 """CLI 入口：按步骤调用下载、转写、摘要模块。"""
 
 import argparse
+import os
 import platform
 from pathlib import Path
 from typing import List, Optional
 
 from pipeline.factory import create_downloader, create_transcriber
 from pipeline.io_loader import load_urls
-from pipeline.summarizer import CommandSummarizer, summarize_txt_files
+from pipeline.summarizer import (
+    CommandSummarizer,
+    ResponsesAPISummarizer,
+    summarize_txt_files,
+)
 from pipeline.types import Summarizer
 from pipeline.utils import ensure_dirs, list_video_files
 
@@ -20,6 +25,30 @@ DEFAULT_VIDEO_PATH = Path("./todo")
 DEFAULT_SUBTITLE_PATH = Path("./subtitle")
 DEFAULT_PROMPT_PATH = Path("./prompt")
 DEFAULT_SUMMARY_PATH = Path("./summary")
+
+
+def load_local_dotenv(dotenv_path: Path) -> None:
+    """从当前目录 .env 加载环境变量；不覆盖已存在变量。"""
+    if not dotenv_path.exists() or not dotenv_path.is_file():
+        return
+    for raw_line in dotenv_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key:
+            continue
+        if value and value[0] in {"'", '"'} and value[-1] == value[0]:
+            value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        os.environ.setdefault(key, value)
 
 
 def default_vibe_model_path() -> Path:
@@ -43,6 +72,8 @@ DEFAULT_VIBE_MODEL_PATH = default_vibe_model_path()
 
 
 def parse_args() -> argparse.Namespace:
+    load_local_dotenv(Path.cwd() / ".env")
+
     parser = argparse.ArgumentParser(description="Video pipeline tool")
     parser.add_argument("--input-dir", default=str(DEFAULT_INPUT_DIR))
     parser.add_argument("--cookies-path", default=str(DEFAULT_COOKIES_PATH))
@@ -61,6 +92,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--vibe-args", default=None, help="extra args for vibe")
     parser.add_argument(
         "--llm-command", default=None, help="external command for summarization"
+    )
+    parser.add_argument(
+        "--summary-api-base-url",
+        default=os.getenv("SUMMARY_API_BASE_URL"),
+        help="OpenAI-compatible API base url for summary (e.g. https://api.openai.com)",
+    )
+    parser.add_argument(
+        "--summary-api-key",
+        default=os.getenv("SUMMARY_API_KEY") or os.getenv("OPENAI_API_KEY"),
+        help="API key for summary service",
+    )
+    parser.add_argument(
+        "--summary-api-model",
+        default=os.getenv("SUMMARY_API_MODEL", "gpt-5.2-codex"),
+        help="model name for /v1/responses",
+    )
+    parser.add_argument(
+        "--summary-api-timeout",
+        type=int,
+        default=int(os.getenv("SUMMARY_API_TIMEOUT", "120")),
+        help="timeout in seconds for each summary request",
     )
     parser.add_argument("--download-workers", type=int, default=4)
     parser.add_argument("--transcribe-workers", type=int, default=2)
@@ -131,6 +183,13 @@ def main() -> None:
             summarizer: Optional[Summarizer]
             if args.llm_command:
                 summarizer = CommandSummarizer(args.llm_command)
+            elif args.summary_api_base_url and args.summary_api_key:
+                summarizer = ResponsesAPISummarizer(
+                    base_url=args.summary_api_base_url,
+                    api_key=args.summary_api_key,
+                    model=args.summary_api_model,
+                    timeout=args.summary_api_timeout,
+                )
             else:
                 summarizer = None
             print(f"Start summarizing {len(txt_files)} file(s)...")

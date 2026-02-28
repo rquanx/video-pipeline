@@ -1,6 +1,6 @@
 # video-pipeline
 
-CLI pipeline for downloading videos, transcribing with `vibe`, and summarizing subtitles via an external LLM command.
+CLI pipeline for downloading videos, transcribing with `vibe`, and summarizing subtitles via either an external command or an OpenAI-compatible `/v1/responses` API.
 
 ## Prerequisites
 - Python 3.10+.
@@ -18,7 +18,9 @@ pip install -e .
 ## Quick start
 1) Prepare URLs in `input.txt` (one per line) or `input.json` (string array). See `input.example.txt`.
 2) Prepare a prompt in `prompt/summary.md` (a default is provided).
-3) Run the pipeline:
+   You can put summary API variables in current directory `.env` (for example: `SUMMARY_API_BASE_URL=...`, `SUMMARY_API_KEY=...`, `SUMMARY_API_MODEL=...`).
+   The pipeline uses `prompt/summary.py` `SUMMARY` by default, and falls back to `prompt/summary.md` for compatibility.
+3) Run the pipeline (command mode):
 ```bash
 video-pipeline \
   --cookies-path ./cookies.txt \
@@ -28,13 +30,25 @@ video-pipeline \
   --summary-path ./summary \
   --llm-command "your-llm-command"
 ```
-Add `--skip-download`, `--skip-transcribe`, or `--skip-summary` to bypass stages. When `--llm-command` is omitted, the summarization step is skipped.
+Or run with Responses API mode:
+```bash
+video-pipeline \
+  --cookies-path ./cookies.txt \
+  --video-path ./todo \
+  --subtitle-path ./subtitle \
+  --prompt-path ./prompt \
+  --summary-path ./summary \
+  --summary-api-base-url "https://ai.qaq.al" \
+  --summary-api-key "sk-xxx" \
+  --summary-api-model "gpt-5.2-codex"
+```
+Add `--skip-download`, `--skip-transcribe`, or `--skip-summary` to bypass stages. If neither `--llm-command` nor valid `--summary-api-*` credentials are provided, summarization is skipped.
 
 ## Behavior
 - URL loading: reads `input.txt` and/or `input.json` in `--input-dir`, plus `--url` flags; normalizes Bilibili watch-later links.
 - Download: defaults to `yt-dlp` with cookies; parallel workers via `--download-workers`.
 - Transcribe: uses `vibe` to produce `.srt`, converts to `.txt`, and deletes the `.srt`; parallel via `--transcribe-workers`.
-- Summarize: feeds subtitle text and prompt to an external command; writes Markdown summaries to `--summary-path`; parallel via `--summary-workers`.
+- Summarize: supports either external command mode (`--llm-command`) or API mode (`--summary-api-base-url`, `--summary-api-key`, `--summary-api-model`) using `POST /v1/responses` with streaming; writes Markdown summaries to `--summary-path`; parallel via `--summary-workers`.
 - Extensibility: custom downloader/transcriber can be provided as `module:ClassName` via `--downloader` / `--transcriber`.
 
 ## Project layout
